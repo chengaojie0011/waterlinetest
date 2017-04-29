@@ -1,0 +1,13 @@
+﻿  waterlinetest.cpp
+c:\opencv\build\include\opencv2\core\mat.hpp(1965): warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+c:\opencv\build\include\opencv2\core\persistence.hpp : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+c:\opencv\build\include\opencv2\core\utility.hpp : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+c:\opencv\build\include\opencv2\core\utility.hpp : warning C4819: 该文件包含不能在当前代码页(936)中表示的字符。请将该文件保存为 Unicode 格式以防止数据丢失
+d:\workspace\opencv\waterlinetest\waterlinetest\waterlinetest.cpp(180): warning C4244: “=”: 从“float”转换到“uchar”，可能丢失数据
+d:\workspace\opencv\waterlinetest\waterlinetest\waterlinetest.cpp(241): warning C4244: “=”: 从“float”转换到“uchar”，可能丢失数据
+d:\workspace\opencv\waterlinetest\waterlinetest\waterlinetest.cpp(193): warning C4101: “j”: 未引用的局部变量
+d:\workspace\opencv\waterlinetest\waterlinetest\waterlinetest.cpp(193): warning C4101: “i”: 未引用的局部变量
+d:\workspace\opencv\waterlinetest\waterlinetest\waterlinetest.cpp(364): warning C4101: “hismax”: 未引用的局部变量
+d:\workspace\opencv\waterlinetest\waterlinetest\waterlinetest.cpp(364): warning C4101: “hismin”: 未引用的局部变量
+  waterlinetest.vcxproj -> D:\workspace\opencv\waterlinetest\Debug\waterlinetest.exe
+  waterlinetest.vcxproj -> D:\workspace\opencv\waterlinetest\Debug\waterlinetest.pdb (Full PDB)
