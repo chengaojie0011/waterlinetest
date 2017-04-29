@@ -13,7 +13,7 @@
 #include <algorithm>
 #include<vector>
 #include <set>
-
+#include  <functional>
 using namespace cv;
 using namespace std;
 
@@ -136,86 +136,25 @@ void  rmHighlight(const Mat  &src, Mat &dst)
 
 
 }
-void mySobel1(Mat &image)
-{
-	//Calculate cl;
-	Mat grayImage;
-	cvtColor(image, grayImage, CV_RGB2GRAY);
-//	vector<vector<int>> gray = cl.Countgray(grayImage);
-	int i,j;
-	int t1 = 0;
-	int	t2 = 0;
-	int maxgray = 0;
-	int mingray = 255;
-	int gradientgray = 0;
-	for (i = 2; i != grayImage.rows - 2; ++i)
-	{
-		for (j = 2; j != grayImage.cols - 2; ++j)
-		{
-		//	gradientgray = gray[i + 1][j - 1] + 2 * gray[i + 1][j] + gray[i + 1][j + 1]
-		//		- gray[i - 1][j - 1] - 2 * gray[i - 1][j] - gray[i - 1][j + 1];
-			gradientgray = grayImage.at<uchar>(i+ 1, j - 1) + 2 * grayImage.at<uchar>(i + 1, j) + grayImage.at<uchar>(i + 1, j+ 1)
-			- grayImage.at<uchar>(i - 1, j - 1) - 2 * grayImage.at<uchar>(i - 1, j) - grayImage.at<uchar>(i - 1, j + 1);
 
-			if (gradientgray >= maxgray)
-			{
-				maxgray = gradientgray;
-			}
-			if (gradientgray <= mingray)
-			{
-				mingray = gradientgray;
-			}
-		}
-	}
-	float k = 255 / float(maxgray - mingray);
-	for (i = 2; i != grayImage.rows - 2; ++i)
-	{
-		uchar* outdata = grayImage.ptr<uchar>(i);
-		for (j = 2; j != grayImage.cols - 2; ++j)
-		{
-		//	gradientgray = gray[i + 1][j - 1] + 2 * gray[i + 1][j] + gray[i + 1][j + 1]
-				//- gray[i - 1][j - 1] - 2 * gray[i - 1][j] - gray[i - 1][j + 1];
-			gradientgray = grayImage.at<uchar>(i + 1, j - 1) + 2 * grayImage.at<uchar>(i + 1, j) + grayImage.at<uchar>(i + 1, j + 1)
-				- grayImage.at<uchar>(i - 1, j - 1) - 2 * grayImage.at<uchar>(i - 1, j) - grayImage.at<uchar>(i - 1, j + 1);
-			outdata[j] = gradientgray * k + 255 - maxgray * k;
-		}
-	}
-	cvtColor(grayImage, image, CV_GRAY2RGB);
-}
 
 void mySobel(Mat &image)
 {
-	//Calculate cl;
+
 	Mat grayImage;
+	Mat grayImagecopy;
 	cvtColor(image, grayImage, CV_RGB2GRAY);
-	imshow("image", image);
-	//vector<vector<int>> gray = cl.Countgray(grayImage);
-	int i, j;
-	int y, x;
+	grayImage.copyTo(grayImagecopy);
+	imshow("gray", grayImage);
 	int t1 = 0;
 	int	t2 = 0;
 	int maxgray = 0;
 	int mingray = 255;
 	int gradientgray = 0;
-	//for (i = 2; i != grayImage.rows - 2; ++i)
-	//{
-	//	for (j = 2; j != grayImage.cols - 2; ++j)
-	//	{
-	//		gradientgray = gray[i + 1][j - 1] + 2 * gray[i + 1][j] + gray[i + 1][j + 1]- gray[i - 1][j - 1] - 2 * gray[i - 1][j] - gray[i - 1][j + 1];
-	//		if (gradientgray >= maxgray)
-	//		{
-	//			maxgray = gradientgray;
-	//		}
-	//		if (gradientgray <= mingray)
-	//		{
-	//			mingray = gradientgray;
-	//		}
-	//	}
-	//}
 
-	for( y = 2; y != grayImage.rows - 2; ++y)
+	for (int y = 1; y < grayImage.rows-1; y++)
 	{
-		for (x = 2; x != grayImage.cols - 2; ++x)
+		for (int x = 1; x < grayImage.cols-1; x++)
 		{
 			gradientgray = grayImage.at<uchar>(y + 1, x - 1)+2*grayImage.at<uchar>(y + 1, x ) + grayImage.at<uchar>(y + 1, x +1) 
 				- grayImage.at<uchar>(y -1, x - 1) -2* grayImage.at<uchar>(y -1, x ) - grayImage.at<uchar>(y - 1, x + 1)  ;
@@ -231,18 +170,35 @@ void mySobel(Mat &image)
 	}
 
 	float k = 255 / float(maxgray - mingray);
-	for (y = 2; y != grayImage.rows - 2; ++y)
+
+	for (int y =1; y < grayImage.rows - 1; y++)
 	{
-		uchar* outdata = grayImage.ptr<uchar>(y);
-		for (x = 2; x != grayImage.cols - 2; ++x)
+		for (int x = 1; x < grayImage.cols - 1; x++)
 		{
 			gradientgray = grayImage.at<uchar>(y + 1, x - 1) + 2 * grayImage.at<uchar>(y + 1, x) + grayImage.at<uchar>(y + 1, x + 1)
 				- grayImage.at<uchar>(y - 1, x - 1) - 2 * grayImage.at<uchar>(y - 1, x) - grayImage.at<uchar>(y - 1, x + 1);
-			outdata[x] = gradientgray * k + 255 - maxgray * k;
+		grayImagecopy.at<uchar>(y, x) = gradientgray * k + 255 - maxgray * k;
 		}
 	}
-	imshow("gray", grayImage);
-	cvtColor(grayImage, image, CV_GRAY2RGB);
+
+
+	cvtColor(grayImagecopy, image, CV_GRAY2RGB);
+}
+
+void myWaterLine(const Mat  &src, const Mat  &sobelimage,Mat &dst)
+{
+
+
+
+		for (int x = 1; x < src.cols - 1; x++)
+		{
+			int  garymeanvalue=0;
+			for (int y = 1; y < src.rows - 1; y++)
+			{
+				garymeanvalue = garymeanvalue + sobelimage.at<uchar>(y, x);
+			}
+		}
+	
 }
 
 void meanShiftMy(const Mat  &src, Mat &dst)
@@ -251,43 +207,23 @@ void meanShiftMy(const Mat  &src, Mat &dst)
 	Mat res; //分割后图像  
 	Mat grayImage;
 	Mat out1;
-	Mat out2;
-	Mat out3;
-	Mat out4;
-	Mat out11;
-	Mat out111;
+
+
 	int a1 = 0;
 
-	cvtColor(src, grayImage, CV_BGR2GRAY);//变为灰度图
 
-//	rmHighlight(grayImage, out1);							  //高亮处理
-
-	//cvtColor(out1, out11, CV_GRAY2BGR);//变为彩色图
-	cvtColor(grayImage, out11, CV_GRAY2BGR);//变为彩色图
-									   //imshow("caise", out11);
-									   //获取自定义核  
+	//获取自定义核  
 	Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
 	//进行闭运算操作  
 	//morphologyEx(out11, out111, MORPH_CLOSE ,element);
 
-	medianBlur(out11, out2, 5);//中值滤波
+	medianBlur(src, out1, 5);//中值滤波
 
-							   //imshow("test",out2);
-
-							   //cvtColor(out2, out3, CV_BGR2Luv);//变为彩色图
 	int spatialRad = 20;  //空间窗口大小  
 	int colorRad = 20;   //色彩窗口大小  
 	int maxPyrLevel = 2;  //金字塔层数  
-	pyrMeanShiftFiltering(out2, dst, spatialRad, colorRad, maxPyrLevel); //色彩聚类平滑滤波  
-	Mat dst_x, dst_y;
-	Mat  m_ResImg;
-	//Sobel边缘检测
-	Sobel(grayImage, dst_x, grayImage.depth(), 1, 0); //X方向梯度
-	Sobel(grayImage, dst_y, grayImage.depth(), 0, 1); //Y方向梯度
-	convertScaleAbs(dst_x, dst_x);
-	convertScaleAbs(dst_y, dst_y);
-	addWeighted(dst_x, 0.5, dst_y, 0.5, 0, m_ResImg);//合并梯度(近似)
-//	imshow("Sobel边缘检测", m_ResImg);
+	pyrMeanShiftFiltering(out1, dst, spatialRad, colorRad, maxPyrLevel); //色彩聚类平滑滤波  
+
 
 }
 
@@ -312,19 +248,224 @@ void floodFillMy(const Mat  &src, Mat &dst)
 	}
 
 }
+int Quantize(const Mat& img3f, Mat &idx1i, Mat &_color3f, Mat &_colorNum, double ratio)
+{
+	static const int clrNums[3] = { 12, 12, 12 };
+	static const float clrTmp[3] = { clrNums[0] - 0.0001f, clrNums[1] - 0.0001f, clrNums[2] - 0.0001f };
+	static const int w[3] = { clrNums[1] * clrNums[2], clrNums[2], 1 };
+
+	CV_Assert(img3f.data != NULL);
+	idx1i = Mat::zeros(img3f.size(), CV_32S);
+	int rows = img3f.rows, cols = img3f.cols;
+	if (img3f.isContinuous() && idx1i.isContinuous())
+	{
+		cols *= rows;
+		rows = 1;
+	}
+
+	// Build color pallet
+	map<int, int> pallet;
+	for (int y = 0; y < img3f.cols; y++)
+	{
+		const float* imgData = img3f.ptr<float>(y);
+		int* idx = idx1i.ptr<int>(y);
+		for (int x = 0; x < img3f.cols; x++, imgData += 3)
+		{
+			idx[x] = (int)(imgData[0] * clrTmp[0])*w[0] + (int)(imgData[1] * clrTmp[1])*w[1] + (int)(imgData[2] * clrTmp[2]);
+			pallet[idx[x]] ++;   // (color, num) pairs in pallet
+		}
+	}
+
+	// Fine significant colors
+	int maxNum = 0;
+	{
+		int count = 0;
+		vector<pair<int, int>> num; //
+		num.reserve(pallet.size());
+		for (map<int, int>::iterator it = pallet.begin(); it != pallet.end(); it++)
+			num.push_back(pair<int, int>(it->second, it->first)); // (num, color) pairs in num
+		sort(num.begin(), num.end(), std::greater<pair<int, int>>());
+
+		//maxNum 表示直方图中的bin数目
+		maxNum = (int)num.size();
+		int maxDropNum = cvRound(rows * cols * (1 - ratio));
+		for (int crnt = num[maxNum - 1].first; crnt < maxDropNum && maxNum > 1; maxNum--)
+			crnt += num[maxNum - 2].first;
+		maxNum = min(maxNum, 256); // To avoid very rarely case
+		if (maxNum < 10)
+			maxNum = min((int)pallet.size(), 100);
+		pallet.clear();
+		for (int i = 0; i < maxNum; i++)
+			pallet[num[i].second] = i;
+
+		vector<Vec3i> color3i(num.size());
+		for (unsigned int i = 0; i < num.size(); i++)
+		{
+			color3i[i][0] = num[i].second / w[0];
+			color3i[i][1] = num[i].second % w[0] / w[1];
+			color3i[i][2] = num[i].second % w[1];
+		}
+		//将少于（1-ratio）的像素所占的颜色被直方图中距离最近的颜色所替代。
+		for (unsigned int i = maxNum; i < num.size(); i++)
+		{
+			int simIdx = 0, simVal = INT_MAX;
+			for (int j = 0; j < maxNum; j++)
+			{
+				int d_ij = vecSqrDist3(color3i[i], color3i[j]);
+				if (d_ij < simVal)
+					simVal = d_ij, simIdx = j;
+			}
+			pallet[num[i].second] = pallet[num[simIdx].second];
+		}
+	}
+
+	_color3f = Mat::zeros(1, maxNum, CV_32FC3);
+	_colorNum = Mat::zeros(_color3f.size(), CV_32S);
+
+	Vec3f* color = (Vec3f*)(_color3f.data);
+	int* colorNum = (int*)(_colorNum.data);
+	for (int y = 0; y < rows; y++)
+	{
+		const Vec3f* imgData = img3f.ptr<Vec3f>(y);
+		int* idx = idx1i.ptr<int>(y);
+		for (int x = 0; x < cols; x++)
+		{
+			idx[x] = pallet[idx[x]];             //pallet(color,index)
+			color[idx[x]] += imgData[x];
+			colorNum[idx[x]] ++;
+		}
+	}
+	for (int i = 0; i < _color3f.cols; i++)
+		color[i] /= colorNum[i];
+
+	return _color3f.cols;
+}
+
+void SmoothSaliency(const Mat &binColor3f, Mat &sal1d, float delta, const vector<vector<CostfIdx>> &similar)
+{
+	if (sal1d.cols < 2)
+		return;
+	CV_Assert(binColor3f.size() == sal1d.size() && sal1d.rows == 1);
+	int binN = binColor3f.cols;
+	Vec3f* color = (Vec3f*)(binColor3f.data);
+	Mat tmpSal;
+	sal1d.copyTo(tmpSal);
+	float *sal = (float*)(tmpSal.data);
+	float *nSal = (float*)(sal1d.data);
+
+	//* Distance based smooth
+	int n = max(cvRound(binN / delta), 2);
+	vecF dist(n, 0), val(n);
+	for (int i = 0; i < binN; i++)
+	{
+		const vector<CostfIdx> &similari = similar[i];
+		float totalDist = 0;
+
+		val[0] = sal[i];
+		for (int j = 1; j < n; j++)
+		{
+			int ithIdx = similari[j].second;
+			dist[j] = similari[j].first;
+			val[j] = sal[ithIdx];
+			totalDist += dist[j];
+		}
+		float valCrnt = 0;
+		for (int j = 0; j < n; j++)
+			valCrnt += val[j] * (totalDist - dist[j]);
+
+		nSal[i] = valCrnt / ((n - 1) * totalDist);
+	}
+	//*/
+
+	/* Gaussian smooth
+	const float guassCoeff = -0.5f/(delta*delta);
+	for (int i = 0; i < binN; i++)
+	{
+	const vector<CostfIdx> &similari = similar[i];
+	float saliencyI = sal[i], totalW = 1;
+
+	for (int j = 1; j < binN; j++)
+	{
+	float w = expf(sqr(similari[j].first)*guassCoeff);
+	if (w < 1e-8f)
+	break;
+	saliencyI += w * sal[similari[j].second];
+	totalW += w;
+	}
+	nSal[i] = saliencyI / totalW;
+	}
+	//*/
+}
+void GetHCIN(const Mat &binColor3f, const Mat &weight1f, Mat &_colorSal)
+{
+	int binN = binColor3f.cols;
+	_colorSal = Mat::zeros(1, binN, CV_32F);
+	float* colorSal = (float*)(_colorSal.data);
+	vector<vector<CostfIdx>> similar(binN); // Similar color: how similar and their index
+	Vec3f* color = (Vec3f*)(binColor3f.data);
+	float *w = (float*)(weight1f.data);
+	for (int i = 0; i < binN; i++)
+	{
+		vector<CostfIdx> &similari = similar[i];
+		similari.push_back(make_pair(0.f, i));
+		for (int j = 0; j < binN; j++)
+		{
+			if (i == j)
+				continue;
+			float dij = vecDist3<float>(color[i], color[j]);
+			similari.push_back(make_pair(dij, j));
+			colorSal[i] += w[j] * dij;
+		}
+		sort(similari.begin(), similari.end());
+	}
+
+	SmoothSaliency(binColor3f, _colorSal, 4.0f, similar);
+}
+
+Mat  GetHC(const Mat &img3f)
+{
+	// Quantize colors and
+	Mat idx1i, binColor3f, colorNums1i, weight1f, _colorSal;
+	Quantize(img3f, idx1i, binColor3f, colorNums1i,0);
+	cvtColor(binColor3f, binColor3f, CV_BGR2Lab);
+
+	normalize(colorNums1i, weight1f, 1, 0, NORM_L1, CV_32F);
+	GetHCIN(binColor3f, weight1f, _colorSal);
+	float* colorSal = (float*)(_colorSal.data);
+	Mat salHC1f(img3f.size(), CV_32F);
+	for (int r = 0; r < img3f.rows; r++)
+	{
+		float* salV = salHC1f.ptr<float>(r);
+		int* _idx = idx1i.ptr<int>(r);
+		for (int c = 0; c < img3f.cols; c++)
+			salV[c] = colorSal[_idx[c]];
+	}
+	GaussianBlur(salHC1f, salHC1f, Size(3, 3), 0);
+	normalize(salHC1f, salHC1f, 0, 1, NORM_MINMAX);
+	return salHC1f;
+}
 
 
 int main()
 {
 	//读入图像，RGB三通道    
 	Mat  srcImage = imread("4.jpg");
+	imshow("src", srcImage);
 //	colorReduce(srcImage,254);
-	Mat out1;
-//	rmHighlight(srcImage,out1);
-	//imshow("src", srcImage);
 
-	mySobel1(srcImage);
-	imshow("out", srcImage);
+	Mat  test;
+	test = GetHC(srcImage);
+	imshow("HC", test);
+	Mat out1;
+ 	rmHighlight(srcImage,out1);
+
+	//Mat  outMeanshift;
+
+//	meanShiftMy(out1, outMeanshift);
+	//imshow("mean_shift", outMeanshift);
+
+	mySobel(out1);
+	imshow("out", out1);
 	//Mat grad_x,grad_y;
 	//Mat abs_grad_x, abs_grad_y, dst;
 	//Sobel(out1, grad_x, CV_16S, 1, 0, 3, 1, 1, BORDER_DEFAULT);
@@ -336,12 +477,7 @@ int main()
 	//addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, dst);
 	//imshow("【效果图】整体方向Sobel", dst);
 	////进行水面目标的meanshift处理并进行目标识别
-	Mat  outMeanshift;
 
-	int spatialRad = 20;  //空间窗口大小  
-	int colorRad = 20;   //色彩窗口大小  
-	int maxPyrLevel = 2;  //金字塔层数  
-	//pyrMeanShiftFiltering(out1,outMeanshift, spatialRad, colorRad, maxPyrLevel); //色彩聚类平滑滤波  
 	//meanShiftMy(srcImage, outMeanshift);
 	//imshow("mean_shift", outMeanshift);
 
