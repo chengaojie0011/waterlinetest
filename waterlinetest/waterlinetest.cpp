@@ -14,6 +14,7 @@
 #include<vector>
 #include <set>
 #include  <functional>
+#include <math.h>
 using namespace cv;
 using namespace std;
 
@@ -27,11 +28,17 @@ typedef  struct colorbox//声明一个结构体类型boxShore
 	int r;
 	int g;
 	int b ;
+	int labl;
+	int laba;
+	int labb;
+	int s;
 }colorboxInfo;
 
 
 typedef vector <colorboxInfo> colorboxInfoVec;
 
+bool GreaterSort(colorboxInfo a, colorboxInfo b) { return (a.s > b.s); }
+bool LessSort(colorboxInfo a, colorboxInfo b) { return (a.s < b.s); }
 
 void colorReduce(Mat& image, int div)
 {
@@ -39,14 +46,35 @@ void colorReduce(Mat& image, int div)
 	{
 		for (int j = 0; j < image.cols; j++)
 		{
-			image.at<Vec3b>(i, j)[0] = image.at<Vec3b>(i, j)[0]/12;
-			image.at<Vec3b>(i, j)[1] = 255;
-			image.at<Vec3b>(i, j)[2] = 255;
+			int a = image.at<Vec3b>(i, j)[0];
+			int b = a *div/ 256;
+			image.at<Vec3b>(i, j)[0] = image.at<Vec3b>(i, j)[0] *div/ 256; 
+			image.at<Vec3b>(i, j)[1] = image.at<Vec3b>(i, j)[1] *div/ 256;
+			image.at<Vec3b>(i, j)[2] = image.at<Vec3b>(i, j)[2] *div/ 256;
+		/*	cout << "r " << image.at<Vec3b>(i, j)[2] << endl;
+			cout << "g" << image.at<Vec3b>(i, j)[1] << endl;
+			cout << "b " << image.at<Vec3b>(i, j)[0] << endl;*/
 		}
 	}
 }
 
-
+void colorReduceLab(Mat& image)
+{
+	for (int i = 0; i < image.rows; i++)
+	{
+		for (int j = 0; j < image.cols; j++)
+		{
+			/*		int a = image.at<Vec3b>(i, j)[0];
+					int b = a *div / 256;*/
+			image.at<Vec3b>(i, j)[0] = image.at<Vec3b>(i, j)[0] ;
+			image.at<Vec3b>(i, j)[1] = image.at<Vec3b>(i, j)[1] ;
+			image.at<Vec3b>(i, j)[2] = image.at<Vec3b>(i, j)[2] ;
+				cout << "l " <<int( image.at<Vec3b>(i, j)[2] )<< endl;
+			cout << "a" <<int( image.at<Vec3b>(i, j)[1] )<< endl;
+			cout << "b " <<int( image.at<Vec3b>(i, j)[0]) << endl;
+		}
+	}
+}
 void  rmHighlight(const Mat  &src, Mat &dst)
 {
 	Mat  srccopy,grayImage;
@@ -268,7 +296,11 @@ void print(colorboxInfoVec* colorboxinfovec) {
 			(*colorboxinfovec)[j].num<< "\t" <<
 			(*colorboxinfovec)[j].r << "\t" <<
 			(*colorboxinfovec)[j].g << "\t" <<
-			(*colorboxinfovec)[j].b << "\t" << std::endl;
+			(*colorboxinfovec)[j].b << "\t" <<
+			(*colorboxinfovec)[j].labl << "\t" << 
+			(*colorboxinfovec)[j].laba << "\t" << 
+			(*colorboxinfovec)[j].labb << "\t" << 
+			(*colorboxinfovec)[j].s << "\t" << std::endl;
 	}
 
 	return;
@@ -276,31 +308,39 @@ void print(colorboxInfoVec* colorboxinfovec) {
 void getHC(const Mat &src, Mat &dst)
 {
 	Mat labImage;
-	Mat srccopy;
+	Mat srccopy,srclab;
 	src.copyTo(srccopy);
-	colorReduce(e, int div)
-	colorboxInfo firstpixel = { 1,src.at<Vec3b>(1, 1)[2]/12,src.at<Vec3b>(1, 1)[1]/12,src.at<Vec3b>(1, 1)[0] /12};
+	colorReduce(srccopy,12);
+	src.copyTo(srclab);
+	cvtColor(srclab, labImage, CV_BGR2Lab);
+	//colorReduceLab(labImage);
+	colorboxInfo firstpixel = { 1,srccopy.at<Vec3b>(1, 1)[2],srccopy.at<Vec3b>(1, 1)[1],srccopy.at<Vec3b>(1, 1)[0] ,
+		labImage.at<Vec3b>(1, 1)[0],	labImage.at<Vec3b>(1, 1)[1],	labImage.at<Vec3b>(1, 1)[2],0};
 	colorboxInfo cherry = { 5,6,7,8 };
 	colorboxInfoVec coloboxinfovec;
     coloboxinfovec.push_back(firstpixel);
-	//for (int y = 1; y < src.rows - 1; y++)
-	//{
-	//	for (int x = 1; x < src.cols - 1; x++)
-	//	{
-	for (int y = 1; y < 5- 1; y++)
+	for (int y = 1; y < src.rows - 1; y++)
 	{
-		for (int x = 1; x <5 - 1; x++)
+		for (int x = 1; x < src.cols - 1; x++)
 		{
+	/*for (int y = 1; y < 100 - 1; y++)
+	{
+		for (int x = 1; x <100 - 1; x++)
+		{*/
 			if (x==1&&y==1)
 			{
 				continue;
 			}
 			int i = 0;
-			colorboxInfo changepixel = { 1,src.at<Vec3b>(y, x)[2]/12,src.at<Vec3b>(y, x)[1]/12,src.at<Vec3b>(y, x)[0]/12 };
+			/*	cout << "r " << srccopy.at<Vec3b>(y, x)[2] << endl;
+				cout << "g" << srccopy.at<Vec3b>(y, x)[1] << endl;
+				cout<<	"b " << srccopy.at<Vec3b>(y, x)[0] << endl;*/
+			colorboxInfo changepixel = { 1,srccopy.at<Vec3b>(y, x)[2],srccopy.at<Vec3b>(y, x)[1],srccopy.at<Vec3b>(y, x)[0],
+				labImage.at<Vec3b>(y, x)[0],	labImage.at<Vec3b>(y, x)[1],	labImage.at<Vec3b>(y, x)[2],0};
 			for (int j = 0; j < coloboxinfovec.size(); j++)
 			{
-				if (src.at<Vec3b>(y, x)[0] /12== coloboxinfovec[j].b &&src.at<Vec3b>(y, x)[1] /12== coloboxinfovec[j].g&&
-					src.at<Vec3b>(y, x)[2]/12 == coloboxinfovec[j].r)
+				if (srccopy.at<Vec3b>(y, x)[0] == coloboxinfovec[j].b &&srccopy.at<Vec3b>(y, x)[1] == coloboxinfovec[j].g&&
+					srccopy.at<Vec3b>(y, x)[2] == coloboxinfovec[j].r)
 				{
 					i = 0;
 					int hahah2 = changepixel.b;
@@ -320,26 +360,40 @@ void getHC(const Mat &src, Mat &dst)
 		}
 	}
 
+
+	int pixelnum = (src.rows - 2)*(src.cols - 2);
+	for (int i= 0; i< coloboxinfovec.size(); i++)
+	{
+			int signvalue = 0;
+			for (int j = 0; j < coloboxinfovec.size(); j++)
+			{
+				int dlab= sqrt(pow(coloboxinfovec[i].labl- coloboxinfovec[j].labl, 2)+ pow(coloboxinfovec[i].laba- coloboxinfovec[j].laba, 2)
+					+pow(coloboxinfovec[i].labb - coloboxinfovec[j].labb, 2));
+					signvalue = signvalue + dlab*coloboxinfovec[j].num / pixelnum;
+			}
+			coloboxinfovec[i] .s= signvalue;
+		}
+	sort(coloboxinfovec.begin(), coloboxinfovec.end(), GreaterSort);//降序排列  
 	print(&coloboxinfovec);
+	int maxs=0, mins=0;
+	for (int i = 0; i < coloboxinfovec.size(); i++)
+	{
+		if (i = 0)
+		{
+			maxs= coloboxinfovec[i].s;
+		}
+		if (i= coloboxinfovec.size()-1)
+		{
+			mins = coloboxinfovec[i].s;
+		}
+	}
+	cout << "maxs=" << maxs << endl;
+	cout << "mins=" << mins<< endl;
 
-	cvtColor(srccopy, labImage, CV_BGR2Lab);
+
+	imshow("copy", srccopy);
 	imshow("lab", labImage);
-	//for (int y = 1; y < src.rows - 1; y++)
-	//{
-	//	for (int x = 1; x < src.cols - 1; x++)
-	//	{
-	//		src.at<Vec3b>(y, x)[0] = 0;
-	//		src.at<Vec3b>(y, x)[1] = 255;
-	//		src.at<Vec3b>(y, x)[2] = 255;
-	//		for (int y = 1; y < src.rows - 1; y++)
-	//		{
-	//			for (int x = 1; x < src.cols - 1; x++)
-	//			{
 
-	//			}
-	//		}
-	//	}
-	//}
 
 
 }
