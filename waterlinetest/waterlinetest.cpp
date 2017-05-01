@@ -39,7 +39,7 @@ void colorReduce(Mat& image, int div)
 	{
 		for (int j = 0; j < image.cols; j++)
 		{
-			image.at<Vec3b>(i, j)[0] = 0;
+			image.at<Vec3b>(i, j)[0] = image.at<Vec3b>(i, j)[0]/12;
 			image.at<Vec3b>(i, j)[1] = 255;
 			image.at<Vec3b>(i, j)[2] = 255;
 		}
@@ -270,6 +270,7 @@ void print(colorboxInfoVec* colorboxinfovec) {
 			(*colorboxinfovec)[j].g << "\t" <<
 			(*colorboxinfovec)[j].b << "\t" << std::endl;
 	}
+
 	return;
 }
 void getHC(const Mat &src, Mat &dst)
@@ -277,14 +278,52 @@ void getHC(const Mat &src, Mat &dst)
 	Mat labImage;
 	Mat srccopy;
 	src.copyTo(srccopy);
-	cvtColor(srccopy, labImage, CV_BGR2Lab);
-	imshow("lab", labImage);
-	colorboxInfo micheal = { 1,2,3,4 };
+	colorReduce(e, int div)
+	colorboxInfo firstpixel = { 1,src.at<Vec3b>(1, 1)[2]/12,src.at<Vec3b>(1, 1)[1]/12,src.at<Vec3b>(1, 1)[0] /12};
 	colorboxInfo cherry = { 5,6,7,8 };
 	colorboxInfoVec coloboxinfovec;
-	coloboxinfovec.push_back(micheal);
-	coloboxinfovec.push_back(cherry);
+    coloboxinfovec.push_back(firstpixel);
+	//for (int y = 1; y < src.rows - 1; y++)
+	//{
+	//	for (int x = 1; x < src.cols - 1; x++)
+	//	{
+	for (int y = 1; y < 5- 1; y++)
+	{
+		for (int x = 1; x <5 - 1; x++)
+		{
+			if (x==1&&y==1)
+			{
+				continue;
+			}
+			int i = 0;
+			colorboxInfo changepixel = { 1,src.at<Vec3b>(y, x)[2]/12,src.at<Vec3b>(y, x)[1]/12,src.at<Vec3b>(y, x)[0]/12 };
+			for (int j = 0; j < coloboxinfovec.size(); j++)
+			{
+				if (src.at<Vec3b>(y, x)[0] /12== coloboxinfovec[j].b &&src.at<Vec3b>(y, x)[1] /12== coloboxinfovec[j].g&&
+					src.at<Vec3b>(y, x)[2]/12 == coloboxinfovec[j].r)
+				{
+					i = 0;
+					int hahah2 = changepixel.b;
+					coloboxinfovec[j].num = coloboxinfovec[j].num + 1;
+				}
+				else
+				{
+					i++;
+				}
+			}
+			if (i == coloboxinfovec.size())
+			{
+				int hahah = changepixel.b;
+				coloboxinfovec.push_back(changepixel);
+			}
+
+		}
+	}
+
 	print(&coloboxinfovec);
+
+	cvtColor(srccopy, labImage, CV_BGR2Lab);
+	imshow("lab", labImage);
 	//for (int y = 1; y < src.rows - 1; y++)
 	//{
 	//	for (int x = 1; x < src.cols - 1; x++)
