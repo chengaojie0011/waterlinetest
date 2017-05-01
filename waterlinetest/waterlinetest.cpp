@@ -312,6 +312,8 @@ void getHC(const Mat &src, Mat &dst)
 	src.copyTo(srccopy);
 	colorReduce(srccopy,12);
 	src.copyTo(srclab);
+	src.copyTo(dst);
+	cvtColor(dst, dst, CV_BGR2GRAY);
 	cvtColor(srclab, labImage, CV_BGR2Lab);
 	//colorReduceLab(labImage);
 	colorboxInfo firstpixel = { 1,srccopy.at<Vec3b>(1, 1)[2],srccopy.at<Vec3b>(1, 1)[1],srccopy.at<Vec3b>(1, 1)[0] ,
@@ -374,24 +376,58 @@ void getHC(const Mat &src, Mat &dst)
 			coloboxinfovec[i] .s= signvalue;
 		}
 	sort(coloboxinfovec.begin(), coloboxinfovec.end(), GreaterSort);//降序排列  
-	print(&coloboxinfovec);
+//	print(&coloboxinfovec);
 	int maxs=0, mins=0;
 	for (int i = 0; i < coloboxinfovec.size(); i++)
 	{
-		if (i = 0)
+		if (i == 0)
 		{
 			maxs= coloboxinfovec[i].s;
+			int b = maxs;
 		}
-		if (i= coloboxinfovec.size()-1)
+		if (i==coloboxinfovec.size()-1)
 		{
 			mins = coloboxinfovec[i].s;
 		}
 	}
-	cout << "maxs=" << maxs << endl;
-	cout << "mins=" << mins<< endl;
+	//cout << "maxs=" << maxs << endl;
+	//cout << "mins=" << mins<< endl;
+	int k = maxs - mins;
+	for (int i = 0; i < coloboxinfovec.size(); i++)
+	{
+		coloboxinfovec[i].s= (coloboxinfovec[i].s-mins)*255/k;
+	}
+	//print(&coloboxinfovec);
+	for (int y = 1; y < src.rows - 1; y++)
+	{
+		for (int x = 1; x < src.cols - 1; x++)
+		{
+			for (int j = 0; j < coloboxinfovec.size(); j++)
+			{
+				if (srccopy.at<Vec3b>(y, x)[0] == coloboxinfovec[j].b &&srccopy.at<Vec3b>(y, x)[1] == coloboxinfovec[j].g&&
+					srccopy.at<Vec3b>(y, x)[2] == coloboxinfovec[j].r)
+				{
+					dst.at<uchar>(y, x) = coloboxinfovec[j].s;
+				}
+			}
+		}
+	}
+	//for (int y = 1; y < src.rows - 1; y++)
+	//{
+	//	for (int x = 1; x < src.cols - 1; x++)
+	//	{
+	//		if (dst.at<uchar>(y, x)>100)
+	//		{
+	//			dst.at<uchar>(y, x) = 255;
+	//		}
+	//		else
+	//		{
+	//			dst.at<uchar>(y, x) = 0;
 
-
-	imshow("copy", srccopy);
+	//		}
+	//	}
+	//}
+	imshow("dst", dst);
 	imshow("lab", labImage);
 
 
@@ -402,7 +438,7 @@ void getHC(const Mat &src, Mat &dst)
 int main()
 {
 	//读入图像，RGB三通道    
-	Mat  srcImage = imread("4.jpg");
+	Mat  srcImage = imread("14.jpg");
 	imshow("src", srcImage);
 //	colorReduce(srcImage,254);
 
