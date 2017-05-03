@@ -21,7 +21,8 @@ using namespace std;
 #define MIN_AREA 1000//定义最小有效的矩形面积
 
 vector<Vec2f> lines;//定义一个矢量结构lines用于存放得到的线段矢量集合  
-
+vector<vector<Point>> contours;
+vector<Vec4i> hierarchy;
 typedef  struct colorbox//声明一个结构体类型boxShore
 {
 	int num;
@@ -184,8 +185,9 @@ void mySobel(Mat &image)
 	Mat grayImage;
 	Mat grayImagecopy;
 	cvtColor(image, grayImage, CV_RGB2GRAY);
+	//GaussianBlur(grayImage, grayImage, Size(5, 5), 2);   //高斯滤波  
 	grayImage.copyTo(grayImagecopy);
-	imshow("gray", grayImage);
+	//imshow("gray", grayImage);
 	int t1 = 0;
 	int	t2 = 0;
 	int maxgray = 0;
@@ -222,7 +224,27 @@ void mySobel(Mat &image)
 	}
 
 
-	cvtColor(grayImagecopy, image, CV_GRAY2RGB);
+//	cvtColor(grayImagecopy, image, CV_GRAY2RGB);
+		for (int y = 1; y < grayImage.rows - 1; y++)
+		{
+			for (int x = 1; x < grayImage.cols - 1; x++)
+			{
+				if (grayImagecopy.at<uchar>(y, x)>180)
+				{
+					grayImagecopy.at<uchar>(y, x) = 255;
+				}
+				else if  (grayImagecopy.at<uchar>(y, x)<110)
+				{
+					grayImagecopy.at<uchar>(y, x) = 0;
+				}
+				else {
+					grayImagecopy.at<uchar>(y, x) = 125;
+				}
+			}
+		}
+
+		cvtColor(grayImagecopy, image, CV_GRAY2RGB);
+
 }
 
 void myWaterLine(const Mat  &src, const Mat  &sobelimage,Mat &dst)
@@ -253,11 +275,11 @@ void meanShiftMy(const Mat  &src, Mat &dst)
 
 
 	//获取自定义核  
-	Mat element = getStructuringElement(MORPH_RECT, Size(3, 3));
+	Mat element = getStructuringElement(MORPH_RECT, Size(5,5));
 	//进行闭运算操作  
-	//morphologyEx(out11, out111, MORPH_CLOSE ,element);
+	morphologyEx(src, out1, MORPH_CLOSE ,element);
 
-	medianBlur(src, out1, 5);//中值滤波
+	medianBlur(out1, out1, 5);//中值滤波
 
 	int spatialRad = 20;  //空间窗口大小  
 	int colorRad = 20;   //色彩窗口大小  
@@ -305,6 +327,7 @@ void print(colorboxInfoVec* colorboxinfovec) {
 
 	return;
 }
+
 void getHC(const Mat &src, Mat &dst)
 {
 	Mat labImage;
@@ -434,25 +457,64 @@ void getHC(const Mat &src, Mat &dst)
 
 }
 
+void wtline(const Mat &src, Mat &dst)
+{
+	Mat imageGray;
+	cvtColor(src, imageGray, CV_RGB2GRAY);//灰度转换  
+	GaussianBlur(imageGray, imageGray, Size(5, 5), 2);   //高斯滤波  
+	imshow("Gray Image", imageGray);
+	Canny(imageGray, imageGray, 30, 120);
+	imshow("Canny Image", imageGray);
+
+	//查找轮廓  
+
+	findContours(imageGray, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point());
+	Mat imageContours = Mat::zeros(src.size(), CV_8UC1);  //轮廓     
+	Mat marks(src.size(), CV_32S);   //Opencv分水岭第二个矩阵参数  
+	//marks = Scalar::all(0);
+	int index = 0;
+	int compCount = 0;
+	for (; index >= 0; index = hierarchy[index][0], compCount++)
+	{
+		//对marks进行标记，对不同区域的轮廓进行编号，相当于设置注水点，有多少轮廓，就有多少注水点  
+		drawContours(marks, contours, index, Scalar::all(compCount + 1), 1, 8, hierarchy);
+		drawContours(imageContours, contours, index, Scalar(255), 1, 8, hierarchy);
+	}
+
+	//我们来看一下传入的矩阵marks里是什么东西  
+	Mat marksShows;
+	convertScaleAbs(marks, marksShows);
+	imshow("marksShow", marksShows);
+	imshow("轮廓", imageContours);
+	watershed(src, marks);
+	
+
+
+}
 
 int main()
 {
 	//读入图像，RGB三通道    
-	Mat  srcImage = imread("14.jpg");
+	Mat  srcImage = imread("12.jpg");
 	imshow("src", srcImage);
 //	colorReduce(srcImage,254);
 
 	Mat out1;
  	rmHighlight(srcImage,out1);
-	Mat hcImage;
-	getHC(out1, hcImage);
-	//Mat  outMeanshift;
+	//Mat hcImage;
+	//getHC(out1, hcImage);
 
-//	meanShiftMy(out1, outMeanshift);
-	//imshow("mean_shift", outMeanshift);
+	Mat  outMeanshift;
 
-	//mySobel(out1);
-	//imshow("out", out1);
+meanShiftMy(out1, outMeanshift);
+	imshow("mean_shift", outMeanshift);
+
+	Mat wtlineimg;
+wtline(outMeanshift,wtlineimg);
+	Mat  sobelimg;
+	sobelimg = outMeanshift;
+	//mySobel(sobelimg);
+ //  imshow("out", sobelimg);
 	//Mat grad_x,grad_y;
 	//Mat abs_grad_x, abs_grad_y, dst;
 	//Sobel(out1, grad_x, CV_16S, 1, 0, 3, 1, 1, BORDER_DEFAULT);
