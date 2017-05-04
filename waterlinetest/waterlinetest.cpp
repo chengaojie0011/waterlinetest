@@ -21,6 +21,8 @@ using namespace std;
 #define MIN_AREA 1000//定义最小有效的矩形面积
 
 vector<Vec2f> lines;//定义一个矢量结构lines用于存放得到的线段矢量集合  
+vector<Point> maxLine;
+vector<Point> minLine;
 vector<vector<Point>> contours;
 vector<Vec4i> hierarchy;
 typedef  struct colorbox//声明一个结构体类型boxShore
@@ -59,6 +61,17 @@ void colorReduce(Mat& image, int div)
 	}
 }
 
+void colorgraychange(Mat& image, int div)
+{
+	for (int i = 0; i < image.rows; i++)
+	{
+		for (int j = 0; j < image.cols; j++)
+		{
+			image.at<uchar>(i, j) =div;
+		}
+	}
+}
+
 void colorReduceLab(Mat& image)
 {
 	for (int i = 0; i < image.rows; i++)
@@ -76,6 +89,7 @@ void colorReduceLab(Mat& image)
 		}
 	}
 }
+
 void  rmHighlight(const Mat  &src, Mat &dst)
 {
 	Mat  srccopy,grayImage;
@@ -224,8 +238,7 @@ void mySobel(Mat &image)
 	}
 
 
-//	cvtColor(grayImagecopy, image, CV_GRAY2RGB);
-		for (int y = 1; y < grayImage.rows - 1; y++)
+		/*for (int y = 1; y < grayImage.rows - 1; y++)
 		{
 			for (int x = 1; x < grayImage.cols - 1; x++)
 			{
@@ -241,27 +254,168 @@ void mySobel(Mat &image)
 					grayImagecopy.at<uchar>(y, x) = 125;
 				}
 			}
-		}
+		}*/
 
 		cvtColor(grayImagecopy, image, CV_GRAY2RGB);
 
 }
 
-void myWaterLine(const Mat  &src, const Mat  &sobelimage,Mat &dst)
+void myWaterLine(const Mat  &sobelimage,Mat &dst)
 {
 
-
-
-		for (int x = 1; x < src.cols - 1; x++)
-		{
-			int  garymeanvalue=0;
-			for (int y = 1; y < src.rows - 1; y++)
-			{
-				garymeanvalue = garymeanvalue + sobelimage.at<uchar>(y, x);
-			}
-		}
 	
-}
+
+	
+	for (int x = 1; x < dst.cols-5; x = x + 5)
+	{
+		int  garymax = 0, garymin = 255, ymin = 0, ymax = 0;
+		for (int y = 1; y < dst.rows - 1; y++)
+		{
+			//每个x的每行的值
+			int  garymeanvalue = 0;
+			for (int xin = x; xin < x + 5; xin++)
+			{
+				int color = sobelimage.at<uchar>(y, xin);
+				garymeanvalue = garymeanvalue + int(sobelimage.at<uchar>(y, xin));
+			}
+
+			if (garymax <= garymeanvalue / 5)
+			{
+				garymax = garymeanvalue / 5;
+				ymax = y;
+			
+			}
+
+		}
+		Point  pout1;
+		pout1.x = x + 2;
+		pout1.y = ymax;
+		maxLine.push_back(pout1);
+
+		for (int y = 1; y < dst.rows - 1; y++)
+		{
+			//每个x的每行的值
+			int  garymeanvalue = 0;
+			for (int xin = x; xin < x + 5; xin++)
+			{
+				int color = sobelimage.at<uchar>(y, xin);
+				garymeanvalue = garymeanvalue + int(sobelimage.at<uchar>(y, xin));
+			}
+
+
+			if (garymin >= garymeanvalue / 5 && y<=ymax-10)
+			{
+				garymin = garymeanvalue / 5;
+				ymin = y;
+			}
+			
+		}
+
+		Point  pout3;
+		pout3.x = x+2;
+		pout3.y = ymin;
+		minLine.push_back(pout3);
+	}
+
+
+	for (int j = 3; j < minLine.size() - 3; j++)
+	{
+		if (abs(minLine[j - 1].y - minLine[j].y) > 10&& abs(minLine[j + 1].y - minLine[j].y) > 10)
+		{
+			minLine[j].y = minLine[j - 1].y;
+			//minLine[j].y = float(minLine[j - 3].y + minLine[j + 3].y) * 8 / 20 + float(minLine[j -2].y + minLine[j +2].y) * 2 / 20;
+		}
+		if (abs(maxLine[j - 1].y - maxLine[j].y) > 10&&abs(maxLine[j + 1].y - maxLine[j].y)  > 10)
+		{
+			maxLine[j].y = maxLine[j - 1].y;
+		}
+	}
+
+	//修补山连着上边界的情况
+	for (int j = 0; j < minLine.size() - 1; j++)
+	{
+		if (minLine[j].y < 10)
+		{
+			if (abs(minLine[j - 1].y - minLine[j].y) > 10)
+			{
+				for (int x = j - 1; x > 0; x--)
+				{
+					if (abs(minLine[x].y - minLine[x - 1].y) <100)
+					{
+						minLine[x].y = 1;
+					}
+				}
+			}
+
+		}
+	}
+
+	for (int j = minLine.size() - 1; j > 20; j--)
+	{
+		if (minLine[j].y < 10)
+		{
+			if (abs(minLine[j + 1].y - minLine[j].y) > 20)
+			{
+				for (int x = j + 1; x < minLine.size() - 1; x++)
+				{
+					if (abs(minLine[x].y - minLine[x + 1].y) <100)
+					{
+						minLine[x].y = 1;
+					}
+				}
+			}
+
+		}
+	}
+
+	//去除单点噪声
+	for (int j = 2; j < minLine.size() - 2; j++)
+	{
+		if (abs(minLine[j - 1].y - minLine[j].y) >20)
+		{
+			minLine[j].y = minLine[j - 1].y;
+		}
+		if (abs(maxLine[j - 1].y - maxLine[j].y) > 20)
+		{
+			maxLine[j].y = maxLine[j - 1].y;
+		}
+	}
+
+
+
+
+		for (int j = 0; j < maxLine.size()-1; j++)
+		{
+	
+			line(dst, maxLine[j], maxLine[j+1], Scalar(255, 255, 255), 1, CV_AA);
+			line(dst, minLine[j], minLine[j + 1], Scalar(0,0, 0), 1, CV_AA);
+
+		}
+		imshow("hah", dst);
+		/*	for (int x = 10; x <100; x++)
+			{
+					int watergary= 0;
+					int maxy = 0;
+					for (int yin = 10; yin < dst.rows - 10; yin++)
+					{
+						int aaa = dst.at<uchar>(yin, x);
+						if (watergary<dst.at<uchar>(yin, x) )
+						{
+							maxy = yin;
+							watergary = dst.at<uchar>(yin, x);
+						}
+					}
+
+					cout << "maxy=" << maxy << "x=" << x << endl;
+					cout << "watergary=" << watergary << endl;
+				}
+	*/
+
+
+		}
+
+
+
 
 void meanShiftMy(const Mat  &src, Mat &dst)
 {
@@ -328,8 +482,9 @@ void print(colorboxInfoVec* colorboxinfovec) {
 	return;
 }
 
-void getHC(const Mat &src, Mat &dst)
+void getHC(const Mat &src, const Mat &waterline, Mat &dst)
 {
+
 	Mat labImage;
 	Mat srccopy,srclab;
 	src.copyTo(srccopy);
@@ -338,55 +493,67 @@ void getHC(const Mat &src, Mat &dst)
 	src.copyTo(dst);
 	cvtColor(dst, dst, CV_BGR2GRAY);
 	cvtColor(srclab, labImage, CV_BGR2Lab);
-	//colorReduceLab(labImage);
-	colorboxInfo firstpixel = { 1,srccopy.at<Vec3b>(1, 1)[2],srccopy.at<Vec3b>(1, 1)[1],srccopy.at<Vec3b>(1, 1)[0] ,
-		labImage.at<Vec3b>(1, 1)[0],	labImage.at<Vec3b>(1, 1)[1],	labImage.at<Vec3b>(1, 1)[2],0};
+	//colorboxInfo firstpixel = { 1,srccopy.at<Vec3b>(1, 1)[2],srccopy.at<Vec3b>(1, 1)[1],srccopy.at<Vec3b>(1, 1)[0] ,
+	//	labImage.at<Vec3b>(1, 1)[0],	labImage.at<Vec3b>(1, 1)[1],	labImage.at<Vec3b>(1, 1)[2],0};
+	colorboxInfo firstpixel = { 1,srccopy.at<Vec3b>(10, 10)[2],srccopy.at<Vec3b>(10, 10)[1],srccopy.at<Vec3b>(10, 10)[0] ,
+		labImage.at<Vec3b>(10, 10)[0],	labImage.at<Vec3b>(10, 10)[1],	labImage.at<Vec3b>(10, 10)[2],0 };
 	colorboxInfo cherry = { 5,6,7,8 };
 	colorboxInfoVec coloboxinfovec;
     coloboxinfovec.push_back(firstpixel);
-	for (int y = 1; y < src.rows - 1; y++)
+	int pixelnum=0;
+	for (int x = 10; x < src.cols - 10; x++)
 	{
-		for (int x = 1; x < src.cols - 1; x++)
+
+		int waterpointy = 0;
+		int watergary = 0;
+		for (int yin = 10; yin < src.rows - 10; yin++)
 		{
-	/*for (int y = 1; y < 100 - 1; y++)
-	{
-		for (int x = 1; x <100 - 1; x++)
-		{*/
-			if (x==1&&y==1)
+			if (watergary<waterline.at<uchar>(yin, x) )
+			{
+				watergary = waterline.at<uchar>(yin, x);
+				waterpointy = yin;
+			}
+		}
+		for (int y = 10; y < src.rows - 10; y++)
+		{
+		
+			if (x==10&y==10)
 			{
 				continue;
 			}
-			int i = 0;
-			/*	cout << "r " << srccopy.at<Vec3b>(y, x)[2] << endl;
-				cout << "g" << srccopy.at<Vec3b>(y, x)[1] << endl;
-				cout<<	"b " << srccopy.at<Vec3b>(y, x)[0] << endl;*/
-			colorboxInfo changepixel = { 1,srccopy.at<Vec3b>(y, x)[2],srccopy.at<Vec3b>(y, x)[1],srccopy.at<Vec3b>(y, x)[0],
-				labImage.at<Vec3b>(y, x)[0],	labImage.at<Vec3b>(y, x)[1],	labImage.at<Vec3b>(y, x)[2],0};
-			for (int j = 0; j < coloboxinfovec.size(); j++)
-			{
-				if (srccopy.at<Vec3b>(y, x)[0] == coloboxinfovec[j].b &&srccopy.at<Vec3b>(y, x)[1] == coloboxinfovec[j].g&&
-					srccopy.at<Vec3b>(y, x)[2] == coloboxinfovec[j].r)
-				{
-					i = 0;
-					int hahah2 = changepixel.b;
-					coloboxinfovec[j].num = coloboxinfovec[j].num + 1;
-				}
-				else
-				{
-					i++;
-				}
-			}
-			if (i == coloboxinfovec.size())
-			{
-				int hahah = changepixel.b;
-				coloboxinfovec.push_back(changepixel);
-			}
 
+				if (y<=waterpointy+2)
+				{
+					continue;
+				}
+				int i = 0;
+				colorboxInfo changepixel = { 1,srccopy.at<Vec3b>(y, x)[2],srccopy.at<Vec3b>(y, x)[1],srccopy.at<Vec3b>(y, x)[0],
+					labImage.at<Vec3b>(y, x)[0],	labImage.at<Vec3b>(y, x)[1],	labImage.at<Vec3b>(y, x)[2],0 };
+				for (int j = 0; j < coloboxinfovec.size(); j++)
+				{
+					if (srccopy.at<Vec3b>(y, x)[0] == coloboxinfovec[j].b &&srccopy.at<Vec3b>(y, x)[1] == coloboxinfovec[j].g&&
+						srccopy.at<Vec3b>(y, x)[2] == coloboxinfovec[j].r)
+					{
+						i = 0;
+						int hahah2 = changepixel.b;
+						coloboxinfovec[j].num = coloboxinfovec[j].num + 1;
+					}
+					else
+					{
+						i++;
+					}
+				}
+				if (i == coloboxinfovec.size())
+				{
+					int hahah = changepixel.b;
+					coloboxinfovec.push_back(changepixel);
+				}
+				pixelnum++;
 		}
 	}
 
 
-	int pixelnum = (src.rows - 2)*(src.cols - 2);
+	//int pixelnum = (src.rows - 10)*(src.cols - 10);
 	for (int i= 0; i< coloboxinfovec.size(); i++)
 	{
 			int signvalue = 0;
@@ -399,7 +566,7 @@ void getHC(const Mat &src, Mat &dst)
 			coloboxinfovec[i] .s= signvalue;
 		}
 	sort(coloboxinfovec.begin(), coloboxinfovec.end(), GreaterSort);//降序排列  
-//	print(&coloboxinfovec);
+	//print(&coloboxinfovec);
 	int maxs=0, mins=0;
 	for (int i = 0; i < coloboxinfovec.size(); i++)
 	{
@@ -421,10 +588,25 @@ void getHC(const Mat &src, Mat &dst)
 		coloboxinfovec[i].s= (coloboxinfovec[i].s-mins)*255/k;
 	}
 	//print(&coloboxinfovec);
-	for (int y = 1; y < src.rows - 1; y++)
+	for (int x = 10; x < src.cols - 10; x++)
 	{
-		for (int x = 1; x < src.cols - 1; x++)
+		int waterpointy = 0;
+		int watergary = 0;
+		for (int yin = 10; yin < src.rows - 10; yin++)
 		{
+			if (watergary < waterline.at<uchar>(yin, x))
+			{
+				watergary = waterline.at<uchar>(yin, x);
+				waterpointy = yin;
+			}
+		}
+		for (int y = 10; y < src.rows - 10; y++)
+		{
+			if (y <= waterpointy+2)
+			{
+				dst.at<uchar>(y, x) = 0;
+				continue;
+			}
 			for (int j = 0; j < coloboxinfovec.size(); j++)
 			{
 				if (srccopy.at<Vec3b>(y, x)[0] == coloboxinfovec[j].b &&srccopy.at<Vec3b>(y, x)[1] == coloboxinfovec[j].g&&
@@ -435,86 +617,91 @@ void getHC(const Mat &src, Mat &dst)
 			}
 		}
 	}
-	//for (int y = 1; y < src.rows - 1; y++)
-	//{
-	//	for (int x = 1; x < src.cols - 1; x++)
-	//	{
-	//		if (dst.at<uchar>(y, x)>100)
-	//		{
-	//			dst.at<uchar>(y, x) = 255;
-	//		}
-	//		else
-	//		{
-	//			dst.at<uchar>(y, x) = 0;
 
+	imshow("dst", dst);
+//	imshow("lab", labImage);
+
+
+
+}
+
+
+void foundmax(const Mat &src, const Mat &waterline)
+{
+
+
+	int x =20;
+	int waterpointy = 0;
+	for (int yin = 10; yin < src.rows - 10; yin++)
+	{
+		int aaa = waterline.at<uchar>(yin, x);
+		if (waterline.at<uchar>(yin, x) != 125)
+		{
+			waterpointy = yin;
+			cout << "yin=" << yin << "x=" << x << endl;
+			cout << "aaa=" << aaa << endl;
+		}
+	}
+	//for (int x = 10; x < src.cols - 10; x++)
+	//{
+	//	for (int y = 10; y < src.rows - 10; y++)
+	//	{
+
+	//		if (x == 10 & y == 10)
+	//		{
+	//			continue;
 	//		}
+
+	//		int waterpointy = 0;
+	//		for (int yin = 10; yin < src.rows - 10; yin++)
+	//		{
+	//			int aaa = waterline.at<uchar>(yin, x);
+	//			if (waterline.at<uchar>(yin, x) !=125)
+	//			{
+	//				waterpointy = yin;
+	//				cout << "yin=" << yin << "x=" << x << endl;
+	//			}
+	//		}
+
+	//		/*	if (y <= waterpointy)
+	//			{
+
+	//			}*/
 	//	}
 	//}
-	imshow("dst", dst);
-	imshow("lab", labImage);
-
-
-
 }
 
-void wtline(const Mat &src, Mat &dst)
-{
-	Mat imageGray;
-	cvtColor(src, imageGray, CV_RGB2GRAY);//灰度转换  
-	GaussianBlur(imageGray, imageGray, Size(5, 5), 2);   //高斯滤波  
-	imshow("Gray Image", imageGray);
-	Canny(imageGray, imageGray, 30, 120);
-	imshow("Canny Image", imageGray);
 
-	//查找轮廓  
-
-	findContours(imageGray, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE, Point());
-	Mat imageContours = Mat::zeros(src.size(), CV_8UC1);  //轮廓     
-	Mat marks(src.size(), CV_32S);   //Opencv分水岭第二个矩阵参数  
-	//marks = Scalar::all(0);
-	int index = 0;
-	int compCount = 0;
-	for (; index >= 0; index = hierarchy[index][0], compCount++)
-	{
-		//对marks进行标记，对不同区域的轮廓进行编号，相当于设置注水点，有多少轮廓，就有多少注水点  
-		drawContours(marks, contours, index, Scalar::all(compCount + 1), 1, 8, hierarchy);
-		drawContours(imageContours, contours, index, Scalar(255), 1, 8, hierarchy);
-	}
-
-	//我们来看一下传入的矩阵marks里是什么东西  
-	Mat marksShows;
-	convertScaleAbs(marks, marksShows);
-	imshow("marksShow", marksShows);
-	imshow("轮廓", imageContours);
-	watershed(src, marks);
-	
-
-
-}
 
 int main()
 {
 	//读入图像，RGB三通道    
-	Mat  srcImage = imread("12.jpg");
-	imshow("src", srcImage);
-//	colorReduce(srcImage,254);
+	Mat  srcImage = imread("13.jpg");
 
 	Mat out1;
  	rmHighlight(srcImage,out1);
-	//Mat hcImage;
-	//getHC(out1, hcImage);
+
 
 	Mat  outMeanshift;
 
-meanShiftMy(out1, outMeanshift);
-	imshow("mean_shift", outMeanshift);
-
-	Mat wtlineimg;
-wtline(outMeanshift,wtlineimg);
+	meanShiftMy(out1, outMeanshift);
 	Mat  sobelimg;
-	sobelimg = outMeanshift;
-	//mySobel(sobelimg);
- //  imshow("out", sobelimg);
+	outMeanshift.copyTo(sobelimg);
+	mySobel(sobelimg);
+
+	cvtColor(sobelimg, sobelimg, CV_BGR2GRAY);
+	Mat waterline;
+	srcImage.copyTo(waterline);
+	cvtColor(waterline, waterline, CV_BGR2GRAY);
+	colorgraychange(waterline,125);
+	myWaterLine(sobelimg,waterline);
+	//imshow("water", waterline);
+
+	//foundmax(out1,waterline);
+	Mat hcImage;
+	getHC(out1,waterline, hcImage);
+
+  //imshow("waterline",outMeanshift);
 	//Mat grad_x,grad_y;
 	//Mat abs_grad_x, abs_grad_y, dst;
 	//Sobel(out1, grad_x, CV_16S, 1, 0, 3, 1, 1, BORDER_DEFAULT);
@@ -531,8 +718,7 @@ wtline(outMeanshift,wtlineimg);
 	//imshow("mean_shift", outMeanshift);
 
 	//识别海天线
-	Mat outwater;
-	Point pmax1, pmax2, pout1, pout2;
+
 //	waterLineFound(srcImage, pmax1, pmax2);
 	//floodFillMy(outMeanshift,outwater);
 	//imshow("line",outwater);
