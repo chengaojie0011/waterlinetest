@@ -262,10 +262,6 @@ void mySobel(Mat &image)
 
 void myWaterLine(const Mat  &sobelimage,Mat &dst)
 {
-
-	
-
-	
 	for (int x = 1; x < dst.cols-5; x = x + 5)
 	{
 		int  garymax = 0, garymin = 255, ymin = 0, ymax = 0;
@@ -391,31 +387,106 @@ void myWaterLine(const Mat  &sobelimage,Mat &dst)
 			line(dst, minLine[j], minLine[j + 1], Scalar(0,0, 0), 1, CV_AA);
 
 		}
-		imshow("hah", dst);
-		/*	for (int x = 10; x <100; x++)
-			{
-					int watergary= 0;
-					int maxy = 0;
-					for (int yin = 10; yin < dst.rows - 10; yin++)
-					{
-						int aaa = dst.at<uchar>(yin, x);
-						if (watergary<dst.at<uchar>(yin, x) )
-						{
-							maxy = yin;
-							watergary = dst.at<uchar>(yin, x);
-						}
-					}
+	//	imshow("hah", dst);
 
-					cout << "maxy=" << maxy << "x=" << x << endl;
-					cout << "watergary=" << watergary << endl;
+		for (int x = 1; x < dst.cols - 1; x ++)
+		{
+			for (int y = 1; y < dst.rows - 1; y++)
+			{
+				if (dst.at<uchar>(y, x)>200)
+				{
+					dst.at<uchar>(y, x) = 255;
 				}
-	*/
+				else if (dst.at<uchar>(y, x)<50)
+				{
+					dst.at<uchar>(y, x) = 2;
+				}
+	
+			}
+		}
 
 
 		}
 
+void coloraverLab(Mat &waterline,Mat & image)
+{
+	cvtColor(image, image, CV_BGR2Lab);
+	imshow("lab", image);
+	//山体
 
+				for (int x = 10; x < image.cols-10; x++)
+				{
+					int ymax = 0,ymin=0;
+					for (int yin = 10; yin < image.rows - 10; yin++)
+					{
+						if (waterline.at<uchar>(yin, x) ==255)
+						{
+							ymax = yin;
+						}
+						else if(waterline.at<uchar>(yin, x) == 0)
+						{
+							ymin = yin;
+						}
+					}
+					for (int y = 10; y < image.rows-10; y++)
+					{
+					
+						/*image.at<Vec3b>(i, j)[0] = image.at<Vec3b>(i, j)[0];
+						image.at<Vec3b>(i, j)[1] = image.at<Vec3b>(i, j)[1];
+						image.at<Vec3b>(i, j)[2] = image.at<Vec3b>(i, j)[2];*/
+	
+				}
+			}
+}
 
+void mouAndSky(Mat &waterline, Mat & image)
+{
+	//cvtColor(image, image, CV_BGR2Lab);
+	//imshow("lab", image);
+	//山体
+	imshow("waterline", waterline);
+		for (int x = 10; x < image.cols - 10; x++)
+		{
+			int ymax = 0, ymin = 0;
+			for (int yin = 10; yin < image.rows - 10; yin++)
+			{
+				if (waterline.at<uchar>(yin, x) == 2)
+				{
+					ymin = yin;
+				}
+				if (waterline.at<uchar>(yin, x) == 255)
+				{
+					ymax = yin;
+				}
+		
+			}
+			cout << "x=" << x << "ymin=" << ymin << endl;
+			for (int y = 10; y < image.rows - 10; y++)
+			{
+				
+				if (y<ymax&&y>ymin)
+				{
+					image.at<Vec3b>(y, x)[0] = 255;
+					image.at<Vec3b>(y, x)[1] = 0;
+					image.at<Vec3b>(y, x)[2] = 0;
+				}
+				else if (y<ymin)
+				{
+					image.at<Vec3b>(y, x)[0] = 0;
+					image.at<Vec3b>(y, x)[1] = 255;
+					image.at<Vec3b>(y, x)[2] = 0;
+				}
+				else
+				{
+					image.at<Vec3b>(y, x)[0] = 0;
+					image.at<Vec3b>(y, x)[1] = 0;
+					image.at<Vec3b>(y, x)[2] = 255;
+				}
+
+			}
+		}
+		imshow("mousky", image);
+}
 
 void meanShiftMy(const Mat  &src, Mat &dst)
 {
@@ -618,7 +689,7 @@ void getHC(const Mat &src, const Mat &waterline, Mat &dst)
 		}
 	}
 
-	imshow("dst", dst);
+	//imshow("dst", dst);
 //	imshow("lab", labImage);
 
 
@@ -671,15 +742,84 @@ void foundmax(const Mat &src, const Mat &waterline)
 	//}
 }
 
+void getBoat(Mat &src,Mat &dst)
+{
+	//src.copyTo(dst);
+	for (int x =0; x < src.cols ; x++)
+	{
+		for (int y = 0; y < src.rows ; y++)
+		{
+			if ((x>=0&&x<=10)||(x>=src.cols-10&&x<=src.cols-1)|| (y >= 0 && y <= 10) || (y >= src.rows- 10 && y<= src.rows- 1))
+			{
+				src.at<uchar>(y, x) = 0;
+				continue;
+			}
+			if (src.at<uchar>(y , x )>=120)
+			{
+				src.at<uchar>(y, x) = 255;
+			}
+			else 
+			{
+				src.at<uchar>(y, x) = 0;
+			}
+		}
+	}
+	Point lefttop, righttop ,leftbottom, rightbottom;
+	int left = src.cols;
+	int right = 0;
+	int bottom = 0;
+	int top = src.rows;
+	for (int x = 0; x < src.cols; x++)
+	{
+		for (int y = 0; y < src.rows; y++)
+		{
+			if (src.at<uchar>(y, x) == 255)
+			{
+				if (x<left)
+				{
+					left = x;
+				}
+				if (x>right)
+				{
+					right = x;
+				}
+				if (y<top)
+				{
+					top = y;
+				}
+				if (y>bottom)
+				{
+					bottom = y;
+				}
+			}
+		}
+	}
+	lefttop.x = left;
+	lefttop.y = top;
+	leftbottom.x =left ;
+	leftbottom.y = bottom;
+	righttop.x =right ;
+	righttop.y = top;
+	rightbottom.x =right ;
+	rightbottom.y = bottom;
+	line(dst, lefttop, leftbottom, Scalar(0, 0, 255), 1, CV_AA);
+	line(dst, lefttop, righttop, Scalar(0, 0, 255), 1, CV_AA);
+	line(dst, leftbottom, rightbottom, Scalar(0, 0, 255), 1, CV_AA);
+	line(dst, righttop, rightbottom, Scalar(0, 0, 255), 1, CV_AA);
+
+	imshow("boat", dst);
+
+}
 
 
 int main()
 {
 	//读入图像，RGB三通道    
-	Mat  srcImage = imread("13.jpg");
+	Mat  srcImage = imread("12.jpg");
 
 	Mat out1;
  	rmHighlight(srcImage,out1);
+	
 
 
 	Mat  outMeanshift;
@@ -695,45 +835,20 @@ int main()
 	cvtColor(waterline, waterline, CV_BGR2GRAY);
 	colorgraychange(waterline,125);
 	myWaterLine(sobelimg,waterline);
-	//imshow("water", waterline);
+	imshow("water",waterline);
+	Mat  colorlabsrc;
+	out1.copyTo(colorlabsrc);
+	mouAndSky(waterline,colorlabsrc);
 
-	//foundmax(out1,waterline);
 	Mat hcImage;
 	getHC(out1,waterline, hcImage);
+	imshow("hc", hcImage);
 
-  //imshow("waterline",outMeanshift);
-	//Mat grad_x,grad_y;
-	//Mat abs_grad_x, abs_grad_y, dst;
-	//Sobel(out1, grad_x, CV_16S, 1, 0, 3, 1, 1, BORDER_DEFAULT);
-	//convertScaleAbs(grad_x, abs_grad_x);
-	//imshow("【效果图】 X方向Sobel", abs_grad_x);
-	//Sobel(out1, grad_y, CV_16S, 0, 1, 3, 1, 1, BORDER_DEFAULT);
-	//convertScaleAbs(grad_y, abs_grad_y);
-	//imshow("【效果图】Y方向Sobel", abs_grad_y);
-	//addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0, dst);
-	//imshow("【效果图】整体方向Sobel", dst);
-	////进行水面目标的meanshift处理并进行目标识别
+	Mat boatimage;
+	srcImage.copyTo(boatimage);
+	getBoat(hcImage,boatimage);
+	imshow("boat", boatimage);
 
-	//meanShiftMy(srcImage, outMeanshift);
-	//imshow("mean_shift", outMeanshift);
-
-	//识别海天线
-
-//	waterLineFound(srcImage, pmax1, pmax2);
-	//floodFillMy(outMeanshift,outwater);
-	//imshow("line",outwater);
-	//pout1.x = srcImage.cols;
-	//pout1.y = pmax2.y - (pmax2.x - srcImage.cols)*(pmax2.y - pmax1.y) / (pmax2.x - pmax1.x);
-	//pout2.y = pmax2.y - pmax2.x*(pmax2.y - pmax1.y) / (pmax2.x - pmax1.x);
-	//pout2.x = 0;
-	//line(srcImage, pout1, pout2, Scalar(0, 0, 255), 1, CV_AA);
-
-	//imshow("outwater",srcImage);
-
-	//直方图提取
-	Mat histogram, test1;
-	int hismin, hismax;
-	//imshow("outmean", outMeanshift);
 	waitKey(0);
     return 0;
 }
