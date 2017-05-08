@@ -25,6 +25,8 @@ vector<Point> maxLine;
 vector<Point> minLine;
 vector<vector<Point>> contours;
 vector<Vec4i> hierarchy;
+const int gray_level = 16;
+
 typedef  struct colorbox//声明一个结构体类型boxShore
 {
 	int num;
@@ -439,12 +441,25 @@ void coloraverLab(Mat &waterline,Mat & image)
 			}
 }
 
-void mouAndSky(Mat &waterline, Mat & image)
+
+
+void mouAndSky(Mat &waterline, Mat & image,Point &point_255,Point &point_0)
 {
-	//cvtColor(image, image, CV_BGR2Lab);
 	//imshow("lab", image);
 	//山体
-	imshow("waterline", waterline);
+
+
+	int left_255 = image.cols;
+	int  right_255 = 0;
+	int  bottom_255 = 0;
+	int  top_255 = image.rows;
+
+	int left_0= image.cols;
+	int  right_0 = 0;
+	int  bottom_0 = 0;
+	int  top_0 = image.rows;
+	cvtColor(image, image, CV_BGR2GRAY);
+	//imshow("waterline", waterline);
 		for (int x = 10; x < image.cols - 10; x++)
 		{
 			int ymax = 0, ymin = 0;
@@ -460,32 +475,319 @@ void mouAndSky(Mat &waterline, Mat & image)
 				}
 		
 			}
-			cout << "x=" << x << "ymin=" << ymin << endl;
+			//cout << "x=" << x << "ymin=" << ymin << endl;
 			for (int y = 10; y < image.rows - 10; y++)
 			{
 				
 				if (y<ymax&&y>ymin)
 				{
-					image.at<Vec3b>(y, x)[0] = 255;
+					image.at<uchar>(y, x) = 255;
+				/*	image.at<Vec3b>(y, x)[0] = 255;
 					image.at<Vec3b>(y, x)[1] = 0;
-					image.at<Vec3b>(y, x)[2] = 0;
+					image.at<Vec3b>(y, x)[2] = 0;*/
+
+					if (left_255>x)
+					{
+						left_255 = x;
+					}
+					if (right_255<x)
+					{
+						right_255 = x;
+					}
+					if (top_255>y)
+					{
+						top_255 = y;
+					}
+					if (bottom_255<y)
+					{
+						bottom_255 = y;
+					}
+
 				}
 				else if (y<ymin)
 				{
-					image.at<Vec3b>(y, x)[0] = 0;
-					image.at<Vec3b>(y, x)[1] = 255;
-					image.at<Vec3b>(y, x)[2] = 0;
+
+					image.at<uchar>(y, x) = 0;
+					/*	image.at<Vec3b>(y, x)[0] = 0;
+						image.at<Vec3b>(y, x)[1] = 255;
+						image.at<Vec3b>(y, x)[2] = 0;*/
+					if (left_0> x)
+					{
+						left_0 = x;
+					}
+					if (right_0 < x)
+					{
+						right_0 = x;
+					}
+					if (top_0 >y)
+					{
+						top_0 = y;
+					}
+					if (bottom_0 < y)
+					{
+						bottom_0 = y;
+					}
 				}
 				else
 				{
-					image.at<Vec3b>(y, x)[0] = 0;
-					image.at<Vec3b>(y, x)[1] = 0;
-					image.at<Vec3b>(y, x)[2] = 255;
+					image.at<uchar>(y, x) = 125;
+					/*		image.at<Vec3b>(y, x)[0] = 0;
+							image.at<Vec3b>(y, x)[1] = 0;
+							image.at<Vec3b>(y, x)[2] = 255;*/
 				}
 
 			}
 		}
-		imshow("mousky", image);
+		point_0.x = (left_0 + right_0) / 2;
+		point_0.y = (top_0 + bottom_0) / 2;
+		point_255.x = (left_255 + right_255) / 2;
+		point_255.y = bottom_255-18;
+
+		//imshow("mousky", image);
+}
+
+void mou_horison(Mat& input, Mat& muban, Mat& dst)//0度灰度共生矩阵
+{
+	Mat src = input;
+	CV_Assert(1 == src.channels());
+	src.convertTo(src, CV_32S);
+	int height = src.rows;
+	int width = src.cols;
+	int max_gray_level = 0;
+	for (int j = 10; j < height-10; j++)//寻找像素灰度最大值
+	{
+		int* srcdata = src.ptr<int>(j);
+		for (int i = 10; i < width-10; i++)
+		{
+			if (muban.at<uchar>(j,i)==255)
+			{
+				if (srcdata[i] > max_gray_level)
+				{
+					max_gray_level = srcdata[i];
+				}
+			}
+
+		}
+	}
+	max_gray_level++;//像素灰度最大值加1即为该矩阵所拥有的灰度级数
+	if (max_gray_level > 16)//若灰度级数大于16，则将图像的灰度级缩小至16级，减小灰度共生矩阵的大小。
+	{
+		cout << "width-10=" << width - 10 << endl;
+		for (int i = 10; i < height-10; i++)
+		{
+			int*srcdata = src.ptr<int>(i);
+			for (int j = 10; j < width-10; j++)
+			{
+				//cout << "j=" << j << endl;
+			//	cout << "i=" << i << endl;
+
+				if (muban.at<uchar>(i, j) == 255)
+				{
+					//cout << "j=" << j << endl;
+			
+					srcdata[j] = (int)srcdata[j] / gray_level;
+				}
+			}
+		}
+		//cout << "jxxx="  << endl;
+		dst.create(gray_level, gray_level, CV_32SC1);
+		dst = Scalar::all(0);
+		for (int i = 10; i < height-10; i++)
+		{
+			int*srcdata = src.ptr<int>(i);
+			for (int j = 10; j < width - 11; j++)
+			{
+
+				if (muban.at<uchar>(i, j) == 255)
+				{
+					int rows = srcdata[j];
+					int cols = srcdata[j ];
+					dst.ptr<int>(rows)[cols]++;
+			//		cout << "dst.ptr<int>(rows)[cols]=" << dst.ptr<int>(rows)[cols] << endl;
+
+				}
+			}
+		}
+	}
+	else//若灰度级数小于16，则生成相应的灰度共生矩阵
+	{
+		dst.create(max_gray_level, max_gray_level, CV_32SC1);
+		dst = Scalar::all(0);
+		for (int i = 10; i < height-10; i++)
+		{
+			int*srcdata = src.ptr<int>(i);
+			for (int j = 10; j < width - 11; j++)
+			{
+				if (muban.at<uchar>(i, j) == 255)
+				{
+					int rows = srcdata[j];
+					int cols = srcdata[j ];
+					dst.ptr<double>(rows)[cols]++;
+				}
+			}
+		}
+	}
+}
+
+void sky_horison(Mat& input, Mat& muban, Mat& dst)//0度灰度共生矩阵
+{
+	Mat src = input;
+	CV_Assert(1 == src.channels());
+	src.convertTo(src, CV_32S);
+	int height = src.rows;
+	int width = src.cols;
+	int max_gray_level = 0;
+	for (int j = 10; j < height - 10; j++)//寻找像素灰度最大值
+	{
+		int* srcdata = src.ptr<int>(j);
+		for (int i = 10; i < width - 10; i++)
+		{
+			if (muban.at<uchar>(j, i) == 0)
+			{
+				if (srcdata[i] > max_gray_level)
+				{
+					max_gray_level = srcdata[i];
+				}
+			}
+
+		}
+	}
+	max_gray_level++;//像素灰度最大值加1即为该矩阵所拥有的灰度级数
+	if (max_gray_level > 16)//若灰度级数大于16，则将图像的灰度级缩小至16级，减小灰度共生矩阵的大小。
+	{
+		cout << "width-10=" << width - 10 << endl;
+		for (int i = 10; i < height - 10; i++)
+		{
+			int*srcdata = src.ptr<int>(i);
+			for (int j = 10; j < width - 10; j++)
+			{
+				//cout << "j=" << j << endl;
+				//	cout << "i=" << i << endl;
+
+				if (muban.at<uchar>(i, j) == 0)
+				{
+					//cout << "j=" << j << endl;
+
+					srcdata[j] = (int)srcdata[j] / gray_level;
+				}
+			}
+		}
+		//cout << "jxxx="  << endl;
+		dst.create(gray_level, gray_level, CV_32SC1);
+		dst = Scalar::all(0);
+		for (int i = 10; i < height - 10; i++)
+		{
+			int*srcdata = src.ptr<int>(i);
+			for (int j = 10; j < width - 11; j++)
+			{
+
+				if (muban.at<uchar>(i, j) == 0)
+				{
+					int rows = srcdata[j];
+					int cols = srcdata[j];
+					dst.ptr<int>(rows)[cols]++;
+					//		cout << "dst.ptr<int>(rows)[cols]=" << dst.ptr<int>(rows)[cols] << endl;
+
+				}
+			}
+		}
+	}
+	else//若灰度级数小于16，则生成相应的灰度共生矩阵
+	{
+		dst.create(max_gray_level, max_gray_level, CV_32SC1);
+		dst = Scalar::all(0);
+		for (int i = 10; i < height - 10; i++)
+		{
+			int*srcdata = src.ptr<int>(i);
+			for (int j = 10; j < width - 11; j++)
+			{
+				if (muban.at<uchar>(i, j) == 0)
+				{
+					int rows = srcdata[j];
+					int cols = srcdata[j];
+					dst.ptr<double>(rows)[cols]++;
+				}
+			}
+		}
+	}
+}
+
+void feature_computer(Mat&src, double& Asm, double& Eng, double& Con, double& Idm)//计算特征值
+{
+	int height = src.rows;
+	int width = src.cols;
+	int total = 0;
+	for (int i = 0; i < height; i++)
+	{
+		int*srcdata = src.ptr<int>(i);
+		for (int j = 0; j < width; j++)
+		{
+			total += srcdata[j];//求图像所有像素的灰度值的和
+		}
+	}
+
+	Mat copy;
+	copy.create(height, width, CV_64FC1);
+	for (int i = 0; i < height; i++)
+	{
+		int*srcdata = src.ptr<int>(i);
+		double*copydata = copy.ptr<double>(i);
+		for (int j = 0; j < width; j++)
+		{
+			copydata[j] = (double)srcdata[j] / (double)total;//图像每一个像素的的值除以像素总和
+		}
+	}
+
+
+	for (int i = 0; i < height; i++)
+	{
+		double*srcdata = copy.ptr<double>(i);
+		for (int j = 0; j < width; j++)
+		{
+			Asm += srcdata[j] * srcdata[j];//能量
+			if (srcdata[j] > 0)
+				Eng -= srcdata[j] * log(srcdata[j]);//熵             
+			Con += (double)(i - j)*(double)(i - j)*srcdata[j];//对比度
+			Idm += srcdata[j] / (1 + (double)(i - j)*(double)(i - j));//逆差矩
+		}
+	}
+}
+
+void foundMouAndSky(Mat &output, Mat & muban,double mou_asm,double mou_eng,double sky_asm,double sky_eng,Point &p255,Point &p0)
+{
+
+	cout << p0.x << p0.y << endl;
+	cout << p255.x << p255.y << endl;
+	//imshow("MUBAN", muban);
+	if (mou_asm<sky_asm&&mou_eng>sky_eng)
+	{
+		for (int x = 10; x < muban.cols - 10; x++)
+		{
+			for (int y = 10; y < muban.rows - 10; y++)
+			{
+			
+					if (muban.at<uchar>(y, x) == 255)
+					{
+						output.at<Vec3b>(y, x)[0] = 255;
+						output.at<Vec3b>(y, x)[1] = 0;
+						output.at<Vec3b>(y, x)[2] = 0;
+
+					}
+					else if (muban.at<uchar>(y, x) == 0)
+					{
+
+						output.at<Vec3b>(y, x)[0] = 0;
+						output.at<Vec3b>(y, x)[1] = 0;
+						output.at<Vec3b>(y, x)[2] = 255;
+					}
+
+				
+				}
+			}
+			putText(output, "sky=red", Point(10, output.rows - 20), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(0, 0, 255), 2, 2);
+			putText(output, "board=blue", Point(10, output.rows - 30), CV_FONT_HERSHEY_SIMPLEX, 0.5, Scalar(255, 0, 0), 2, 2);
+		}
+//	imshow("mousky", image);
 }
 
 void meanShiftMy(const Mat  &src, Mat &dst)
@@ -815,31 +1117,48 @@ void getBoat(Mat &src,Mat &dst)
 int main()
 {
 	//读入图像，RGB三通道    
-	Mat  srcImage = imread("12.jpg");
-
+	Mat  srcImage = imread("132.jpg");
+	imshow("src", srcImage);
+	//e.g.4.5.122.132
 	Mat out1;
  	rmHighlight(srcImage,out1);
-	
+	imshow("rmHighlight", out1);
 
 
 	Mat  outMeanshift;
 
 	meanShiftMy(out1, outMeanshift);
+	//imshow("mean-shift", outMeanshift);
 	Mat  sobelimg;
 	outMeanshift.copyTo(sobelimg);
 	mySobel(sobelimg);
-
+	imshow("sobelimg", sobelimg);
 	cvtColor(sobelimg, sobelimg, CV_BGR2GRAY);
 	Mat waterline;
 	srcImage.copyTo(waterline);
 	cvtColor(waterline, waterline, CV_BGR2GRAY);
 	colorgraychange(waterline,125);
 	myWaterLine(sobelimg,waterline);
-	imshow("water",waterline);
+	imshow("waterline", waterline);
+	//imshow("water",waterline);
 	Mat  colorlabsrc;
+	Point p_255, p_0;
 	out1.copyTo(colorlabsrc);
-	mouAndSky(waterline,colorlabsrc);
+	mouAndSky(waterline,colorlabsrc,p_255,p_0);
 
+	Mat  huidujusrc, img255,img0;
+	out1.copyTo(huidujusrc);
+	cvtColor(huidujusrc, huidujusrc, CV_BGR2GRAY);
+	GaussianBlur(huidujusrc, huidujusrc, Size(15,15), 0, 0);
+	mou_horison(huidujusrc, colorlabsrc, img255);
+	sky_horison(huidujusrc, colorlabsrc, img0);
+
+	double mou_eng_horison = 0, mou_con_horison = 0, mou_idm_horison = 0, mou_asm_horison = 0;
+	double sky_eng_horison = 0, sky_con_horison = 0, sky_idm_horison = 0, sky_asm_horison = 0;
+	feature_computer(img255, mou_asm_horison, mou_eng_horison, mou_con_horison, mou_idm_horison);
+	feature_computer(img0, sky_asm_horison, sky_eng_horison, sky_con_horison, sky_idm_horison);
+	cout << "mou_能量asm=" << mou_asm_horison << " mou_熵eng=" << mou_eng_horison << endl;
+	cout << "sky_能量asm=" << sky_asm_horison << " sky_熵eng=" << sky_eng_horison << endl;
 	Mat hcImage;
 	getHC(out1,waterline, hcImage);
 	imshow("hc", hcImage);
@@ -847,6 +1166,7 @@ int main()
 	Mat boatimage;
 	srcImage.copyTo(boatimage);
 	getBoat(hcImage,boatimage);
+	foundMouAndSky(boatimage, colorlabsrc, mou_asm_horison, mou_eng_horison, sky_asm_horison, sky_eng_horison,p_255,p_0);
 	imshow("boat", boatimage);
 
 	waitKey(0);
